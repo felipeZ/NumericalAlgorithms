@@ -1,7 +1,7 @@
 
 module Tools where
 
-import Data.Vector.Unboxed as U
+import qualified Data.Vector.Unboxed as U
 import Data.Array.Repa as R
 import Data.Array.Repa.Algorithms.Matrix (
                         col
@@ -15,13 +15,24 @@ import Data.Array.Repa.Algorithms.Matrix (
 -- Internal modules
 import TypesOptimization (
                           Matrix
-                         ,Vec)
+                         ,Point)
 
 -- =============><==============
 
 -- | scalar product between two vectors
-dot :: Vec -> Vec -> Double
-dot xs ys =  sumAllS $ xs *^ ys
+dot :: Point -> Point -> Double
+dot xs ys =  U.sum $ U.zipWith (*) xs ys
 
 scalarMatrix :: Double -> Matrix -> Matrix
 scalarMatrix s = computeUnboxedS . R.map (*s)
+
+normVec :: Point -> Double
+normVec xs = sqrt $ dot xs xs 
+
+identity ::  DIM2 -> Matrix
+identity sh = computeUnboxedS $ fromFunction sh $
+  \(Z:. x:. y) -> if x==y then 1 else 0
+
+unboxed2Mtx :: U.Vector Double -> Matrix
+unboxed2Mtx vs = R.fromUnboxed (ix2 dim 1) vs
+  where dim = U.length vs

@@ -3,16 +3,19 @@ module Optimization where
 
 import Data.Vector.Unboxed as U
 import Data.Array.Repa as R
-import Data.Array.Repa.Algorithms.Matrix (
-                       ,col
-                       ,mmultP
-                       ,mmultS
-                       ,row
-                       ,transpose2P
-                       ,transpose2S
-                       )
---
 
+  
+-- ===========> <================
+
+-- | Maximum displacement 
+type MaxDisp  = Maybe Double 
+
+-- | Algorithm Used to minmize the target function
+data Algorithm =  BFGS    
+                | L_BFGS  
+                | CG      
+                | Steepest MaxDisp
 
 -- |
-minimization :: 
+minimization :: Function -> FunGrad -> Point -> Algorithm -> Either String Point
+minimzation
