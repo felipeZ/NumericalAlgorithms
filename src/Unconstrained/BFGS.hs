@@ -1,6 +1,8 @@
 {-# LANGUAGE BangPatterns #-}
 
-module BFGS where
+module BFGS  (
+              bfgs 
+             ) where
 
 import qualified Data.Vector.Unboxed as U
 import Data.Array.Repa as R
@@ -52,7 +54,7 @@ bfgs f gradF point guessH delta maxSteps = recBFGS point guessH 0
                                  else do
                                     let d        = mmultS hs . unboxed2Mtx $ U.map negate $ gradF xs
                                         xsM      = unboxed2Mtx xs
-                                        alpha    = wolfeLineSearch f gradF (R.toUnboxed d) xs 1 Nothing
+                                        alpha    = wolfeLineSearch f gradF (R.toUnboxed d) xs 2 Nothing
                                         alphaDir = scalarMatrix alpha d 
                                         newXs    = R.toUnboxed .computeUnboxedS $ xsM +^ alphaDir 
                                     newHess <- updateHessian hs (gradF xs) xs

@@ -29,8 +29,8 @@ scalarMatrix s = computeUnboxedS . R.map (*s)
 normVec :: Point -> Double
 normVec xs = sqrt $ dot xs xs 
 
-identity ::  DIM2 -> Matrix
-identity sh = computeUnboxedS $ fromFunction sh $
+identity ::  Int -> Matrix
+identity dim = computeUnboxedS $ fromFunction (ix2 dim dim) $
   \(Z:. x:. y) -> if x==y then 1 else 0
 
 unboxed2Mtx :: U.Vector Double -> Matrix
