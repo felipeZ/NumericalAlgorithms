@@ -4,13 +4,7 @@ module WolfeCondition where
 
 import Data.Maybe (fromMaybe)
 import qualified Data.Vector.Unboxed as U
-import Data.Array.Repa as R
-import Data.Array.Repa.Algorithms.Matrix (
-                        mmultP
-                       ,mmultS
-                       ,transpose2P
-                       ,transpose2S
-                       )
+
 import Prelude as P
 
 -- Internal Modules
@@ -27,8 +21,6 @@ import TypesOptimization (
 import Tools (
              dot
             ,normVec
-            ,scalarMatrix
-            ,unboxed2Mtx
              )
 
 -- Types
@@ -36,7 +28,7 @@ type AlphaMax  = Double
 
 
 data WolfeData = WolfeData {
-                            phi   ::   Double -> Double -- ^ Phi(ak)
+                            phi   ::  Double -> Double -- ^ Phi(ak)
                            ,phi'  ::  Double -> Double  -- ^ Phi derivative function
                            ,phi0  :: !Double            -- ^ Phi function evaluated at zero phi'(0)  
                            ,phi0' :: !Double            -- ^ Phi derivative evaluated at zero phi'(0)
@@ -55,14 +47,14 @@ wolfeLineSearch :: Function
                -> Double 
 wolfeLineSearch f gradF d xs aMax maybeWP = recWolfe wdata 0 a1 aMax 1                 
    where wdata     = WolfeData fun dervPhi' (f xs) (dot d $ gradF xs) wp  
-         a1        = aMax/2
+         a1        = 1
          wp        = fromMaybe (WP 1e-4 0.9) maybeWP
          fun       = f . evalArg
          funGrad   = gradF . evalArg 
          evalArg a = U.zipWith (+) xs $ U.map  (*a) d
          dervPhi'  = dot d . funGrad
          
-recWolfe ::  WolfeData -> Double -> Double -> Double -> Int -> Double          
+recWolfe ::  WolfeData -> Double -> Double -> Double -> Int -> Double
 recWolfe wd@(WolfeData phi phi' phi0 phi0' (WP c1 c2) ) !ak_1 !ak aMax step =
  if bool1 then action1 else if bool2 then action2 else if bool3 then action3 else action4
   
@@ -83,16 +75,15 @@ zoom :: WolfeData -> Double -> Double -> Double
 zoom wd@(WolfeData phi phi' phi0 phi0' (WP c1 c2) ) alo ahi  =
    if bool1 then action1 else if bool2 then action2 else if bool3 then action3 else action4
 
-  where aj = interpolate wd alo ahi
+  where aj       =   interpolate wd alo ahi
         phi_j    = phi aj 
         c1ajPhi' = c1 * aj * phi0'
         bool1    = (phi_j > phi0 + c1ajPhi') || (phi aj >= phi alo)
         bool2    = (abs $ phi' aj) <= (negate $ c2 * phi0')
         bool3    = ((phi' aj) *(ahi-alo)) >= 0 
-        action1  =  zoom wd alo aj 
+        action1  = zoom wd alo aj 
         action2  = aj
-        action3  =  zoom wd alo alo
-        -- action3  = zoom wd aj alo        
+        action3  = zoom wd aj alo        
         action4  =  zoom wd aj ahi
 
         

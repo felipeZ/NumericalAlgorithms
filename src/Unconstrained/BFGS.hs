@@ -26,6 +26,7 @@ import TypesOptimization (
                           )
 import Tools (
              dot
+            ,identity
             ,normVec
             ,scalarMatrix
             ,unboxed2Mtx
@@ -34,8 +35,6 @@ import Tools (
 import WolfeCondition (wolfeLineSearch)
 
 -- ===============================> <========================
-
--- initialGuess ::
 
 bfgs :: Monad m => Function  -- | Objective funxtion f(X) where X = {x1,x2...xn} 
                 -> FunGrad   -- | Objective function Gradient Df(X) = {df/dx1,..df/dxn} 
@@ -47,38 +46,39 @@ bfgs :: Monad m => Function  -- | Objective funxtion f(X) where X = {x1,x2...xn}
 bfgs f gradF point guessH delta maxSteps = recBFGS point guessH 0
   where recBFGS !xs !hs step =
           if (step > maxSteps)
-             then return . Left $ printf "Convergence criterion not met after %d steps\n" step
+             then return . Left $ printf "Convergence criterion not met after %d steps\nlast Step:%s\n" step (show xs)
              else do       
               let norma = normVec $ gradF xs        
-              if (norma < delta) then return $ Right point
+              if (norma < delta) then return $ Right xs
                                  else do
                                     let d        = mmultS hs . unboxed2Mtx $ U.map negate $ gradF xs
                                         xsM      = unboxed2Mtx xs
                                         alpha    = wolfeLineSearch f gradF (R.toUnboxed d) xs 2 Nothing
                                         alphaDir = scalarMatrix alpha d 
-                                        newXs    = R.toUnboxed .computeUnboxedS $ xsM +^ alphaDir 
-                                    newHess <- updateHessian hs (gradF xs) xs
+                                        newXs    = R.toUnboxed .computeUnboxedS $ xsM +^ alphaDir
+                                        g        = U.zipWith (-) (gradF newXs) (gradF xs)
+                                        s        = U.zipWith (-) newXs xs
+                                    newHess <- updateHessian hs g s
                                     recBFGS newXs newHess (succ step) 
 
--- | Use the BFGS quasi-Newton method to update the minimization direction
 updateHessian :: Monad m =>
                     Matrix    -- | current Hessian Matrix
-                 -> Point     -- | Gradient on Point Xj
-                 -> Point     -- | Point Xj
+                 -> Point     -- | Delta Gradients on Point GXj - GXj_1
+                 -> Point     -- | Delta Points  Xj -Xj_1
                  -> m Matrix
 updateHessian !mtx !gU !sU = computeUnboxedP $
-                               mtx +^ gradTerm -^ hessTerm
+                               hessk +^ rhoSST 
                                 
  where g        = unboxed2Mtx gU
        s        = unboxed2Mtx sU
-       gradTerm = let gs = dot gU sU in scalarMatrix (1/gs) gradMtx 
-       gradMtx  = mmultS g gT
-       hessTerm = scalarMatrix (1/sTHs) $ mmultS hs hsT
-       sTHs     = sumAllS $ mmultS sT hs 
-       hs       = mmultS mtx  s                
+       rho      = recip $ dot gU sU
+       ide      = identity $ U.length gU
+       rhoSST   = scalarMatrix rho $ mmultS s sT
+       rhoSYT   = scalarMatrix rho $ mmultS s gT
+       rhoYST   = scalarMatrix rho $ mmultS g sT
        sT       = transpose2S s
        gT       = transpose2S g
-       hsT      = transpose2S hs
+       lft      = computeUnboxedS $ ide -^ rhoSYT
+       rgt      = computeUnboxedS $ ide -^ rhoYST
+       hessk    = mmultS lft $ mmultS mtx rgt 
 {-# INLINE updateHessian #-}
-
-

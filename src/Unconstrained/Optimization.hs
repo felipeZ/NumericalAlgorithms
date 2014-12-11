@@ -36,7 +36,7 @@ minimization :: Monad m => Function -> FunGrad -> Point -> Algorithm -> m (Eithe
 minimization fun gradF xs algorithm =
   let hess0 = identity $ U.length xs
   in case algorithm of
-       BFGS      -> bfgs fun gradF xs hess0 1e-6 100
+       BFGS      -> bfgs fun gradF xs hess0 1e-8 10
        otherwise -> return $ Left "Sorry that's methods is still pending for implementation"
 
 
