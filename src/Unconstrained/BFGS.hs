@@ -46,7 +46,7 @@ bfgs :: Monad m => Function  -- | Objective funxtion f(X) where X = {x1,x2...xn}
 bfgs f gradF point guessH delta maxSteps = recBFGS point guessH 0
   where recBFGS !xs !hs step =
           if (step > maxSteps)
-             then return . Left $ printf "Convergence criterion not met after %d steps\nlast Step:%s\n" step (show xs)
+             then return . Left $ printf "Convergence criterion not met after %d steps\n" step
              else do       
               let norma = normVec $ gradF xs        
               if (norma < delta) then return $ Right xs
@@ -63,7 +63,7 @@ bfgs f gradF point guessH delta maxSteps = recBFGS point guessH 0
 
 updateHessian :: Monad m =>
                     Matrix    -- | current Hessian Matrix
-                 -> Point     -- | Delta Gradients on Point GXj - GXj_1
+                 -> Point     -- | Delta Gradients GXj - GXj_1
                  -> Point     -- | Delta Points  Xj -Xj_1
                  -> m Matrix
 updateHessian !mtx !gU !sU = computeUnboxedP $
