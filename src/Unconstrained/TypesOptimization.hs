@@ -21,6 +21,9 @@ type Tolerance = Double
 
 type MaxSteps  = Int
 
+type Iterations = Int
+
+type Step       = Int
 
 -- | Data Types 
 

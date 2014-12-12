@@ -43,7 +43,7 @@ bfgs :: Monad m => Function  -- | Objective funxtion f(X) where X = {x1,x2...xn}
                 -> Tolerance -- | Numerical Tolerance 
                 -> MaxSteps  -- | Maximum allowed steps
                 -> m (Either String Point)
-bfgs f gradF point guessH delta maxSteps = recBFGS point guessH 0
+bfgs f gradF point guessH delta maxSteps = recBFGS point guessH 1
   where recBFGS !xs !hs step =
           if (step > maxSteps)
              then return . Left $ printf "Convergence criterion not met after %d steps\n" step
@@ -63,7 +63,7 @@ bfgs f gradF point guessH delta maxSteps = recBFGS point guessH 0
 
 updateHessian :: Monad m =>
                     Matrix    -- | current Hessian Matrix
-                 -> Point     -- | Delta Gradients GXj - GXj_1
+                 -> Point     -- | Delta Gradients on Point GXj - GXj_1
                  -> Point     -- | Delta Points  Xj -Xj_1
                  -> m Matrix
 updateHessian !mtx !gU !sU = computeUnboxedP $
