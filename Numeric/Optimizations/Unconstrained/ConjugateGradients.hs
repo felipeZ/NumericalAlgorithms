@@ -1,5 +1,5 @@
 
-module ConjugateGradients where
+module Numeric.Optimizations.Unconstrained.ConjugateGradients where
 
 import Data.Vector.Unboxed as U
 import Data.Array.Repa as R

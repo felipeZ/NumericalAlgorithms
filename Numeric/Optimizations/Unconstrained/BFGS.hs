@@ -1,6 +1,6 @@
 {-# LANGUAGE BangPatterns #-}
 
-module BFGS  (
+module Numeric.Optimizations.Unconstrained.BFGS  (
               bfgs 
              ) where
 
@@ -15,7 +15,7 @@ import Data.Array.Repa.Algorithms.Matrix (
 import Text.Printf (printf)
 
 -- Internal Modules
-import TypesOptimization (
+import  Numeric.Optimizations.TypesOptimization (
                           Function
                          ,FunGrad
                          ,Gradient
@@ -24,7 +24,7 @@ import TypesOptimization (
                          ,Point
                          ,Tolerance
                           )
-import Tools (
+import  Numeric.Optimizations.Tools (
              dot
             ,identity
             ,normVec
@@ -32,7 +32,7 @@ import Tools (
             ,unboxed2Mtx
              )
 
-import WolfeCondition (wolfeLineSearch)
+import Numeric.Optimizations.Unconstrained.WolfeCondition (wolfeLineSearch)
 
 -- ===============================> <========================
 
@@ -69,16 +69,17 @@ updateHessian :: Monad m =>
 updateHessian !mtx !gU !sU = computeUnboxedP $
                                hessk +^ rhoSST 
                                 
- where g        = unboxed2Mtx gU
-       s        = unboxed2Mtx sU
-       rho      = recip $ dot gU sU
-       ide      = identity $ U.length gU
-       rhoSST   = scalarMatrix rho $ mmultS s sT
-       rhoSYT   = scalarMatrix rho $ mmultS s gT
-       rhoYST   = scalarMatrix rho $ mmultS g sT
-       sT       = transpose2S s
-       gT       = transpose2S g
-       lft      = computeUnboxedS $ ide -^ rhoSYT
-       rgt      = computeUnboxedS $ ide -^ rhoYST
-       hessk    = mmultS lft $ mmultS mtx rgt 
+ where g         = unboxed2Mtx gU
+       s         = unboxed2Mtx sU
+       rho       = recip $ dot gU sU
+       ide       = identity $ U.length gU
+       rhoSST    = scalarMatrix rho $ mmultS s sT
+       rhoSYT    = scalarMatrix rho $ mmultS s gT
+       rhomtxYST = scalarMatrix rho $ mmultS mtxY sT
+       mtxY      = mmultS mtx g 
+       sT        = transpose2S s
+       gT        = transpose2S g
+       lft       = computeUnboxedS $ ide -^ rhoSYT
+       rgt       = computeUnboxedS $ mtx -^ rhomtxYST
+       hessk     = mmultS lft rgt 
 {-# INLINE updateHessian #-}

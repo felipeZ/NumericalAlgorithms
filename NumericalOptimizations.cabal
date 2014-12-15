@@ -3,7 +3,7 @@
 
 name:                NumericalOptimizations
 version:             0.1.0.0
-synopsis:            Numerical optimizations implemented in Haskell. 
+synopsis:            Numerical optimizations Using the Repa and Vector Libraries. 
 
 description:         Numerical optimizations are important in numerous fields,and its enormous importance is testified by the amount of time spent optimizing the libraries in C and Fortran, where composibility and legibility is usually sacrificed to increase performance, chaning all the client applications to monolith and obscure codes. Pure Haskell implementation of these functions stands as a safe and fast alternative to create composable tools.
 
@@ -17,7 +17,21 @@ build-type:          Simple
 -- extra-source-files:  
 cabal-version:       >=1.10
 
-library
+Library
+  Build-Depends:
+        base            == 4.7.*
+       ,containers      == 0.5.*
+       ,repa            >= 3.2
+       ,repa-algorithms >= 3.2
+       ,vector          == 0.10.*
+        
+-- Library
+--   Build-Depends:
+--        base                 == 4.7.*,
+  --       repa            >= 3.2.*,
+  --       
+  --     
+
   ghc-options:
     -Odph
     -rtsopts
@@ -26,9 +40,13 @@ library
     -funfolding-keeness-factor1000
     -fllvm
     -optlo-O3
-  -- exposed-modules:     
-  -- other-modules:       
-  -- other-extensions:    
-  build-depends:       base >=4.7 && <4.8
-  hs-source-dirs:      src      
+
+  other-extensions:
+        BangPatterns
+        ViewPatterns
+
+  Exposed-modules:
+        Numeric.Optimizations.LinearAlgebra
+        Numeric.Optimizations.Unconstrained
+
   default-language:    Haskell2010

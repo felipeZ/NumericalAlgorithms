@@ -1,12 +1,13 @@
 {-# LANGUAGE BangPatterns, ViewPatterns #-}
 
-module LBFGS (
+module Numeric.Optimizations.Unconstrained.LBFGS (
               lBFGS 
               ) where
 
+import Control.Exception (assert)
 import Data.Sequence (
-                     (<|)
-                    ,ViewL( (:<) )
+                     (<|)                    
+                    ,ViewL(EmptyL , (:<) )
                     ,ViewR( (:>) )
                     ,viewl
                     ,viewr
@@ -21,7 +22,7 @@ import Data.Array.Repa.Algorithms.Matrix (
 import Text.Printf (printf)
 
 -- Internal Modules
-import TypesOptimization (
+import  Numeric.Optimizations.TypesOptimization (
                           Function
                          ,FunGrad
                          ,Gradient
@@ -32,7 +33,8 @@ import TypesOptimization (
                          ,Step
                          ,Tolerance
                           )
-import Tools (
+  
+import  Numeric.Optimizations.Tools (
              dot
             ,identity
             ,normVec
@@ -40,7 +42,7 @@ import Tools (
             ,unboxed2Mtx
              )
 
-import WolfeCondition (wolfeLineSearch)
+import  Numeric.Optimizations.Unconstrained.WolfeCondition (wolfeLineSearch)
 
 -- ==============> Data Types <==================
 
@@ -76,25 +78,53 @@ lBFGS f gradF point guessHo mIterations delta maxSteps = recLBFGS point (Just gu
                           newInfo  = updateInfo info (s,g) mIterations step
                       recLBFGS newXs Nothing newInfo (succ step) 
 
+
 -- If it is the first step we use the provided Hessian Matrix otherwise we guess a new one
 --  View Patterns is used to pattern match the head of the sequence 
 chooseH0 :: Maybe Matrix -> StoreInfo -> Matrix  
 chooseH0 (Just ho) _ = ho
-chooseH0 _ (viewl -> (s,y) :< _ ) = scalarMatrix p $ mmultS sT yM
-  where sT = transpose2S $ unboxed2Mtx s
-        yM = unboxed2Mtx y
-        p = recip $ dot y y                                     
+chooseH0 Nothing (viewl -> (s,y) :< _ ) = scalarMatrix gamma $ identity dim 
+  where gamma = (dot s y) * (recip $ dot y y)
+        dim   = U.length s 
 
 -- | Nocedal and Wright described this algorithm as a two-loop recursion one. A possible
--- | Implementation in Haskell traverse consist in a forward traverse of the store data structure
+-- | Implementation in Haskell  consist in a forward traverse of the store data structure
 -- | then a backward traverse while accumulating.
 calculateDir :: StoreInfo -- | previous stored m steps
              -> Matrix    -- | guess Hessian matrix
              -> Point     -- | gradient on current point
              -> Point     -- | minimization direction                   
-calculateDir = undefined
---foldrWithIndex :: (Int -> a -> b -> b) -> b -> Seq a -> b
+calculateDir (viewl -> EmptyL) mtx grad  =  R.toUnboxed . mmultS mtx . unboxed2Mtx $ U.map negate grad
+calculateDir info@(viewl -> (siU,yiU) :< _ ) mtx grad  = U.map negate $
+  secondLoop info mtx . firstLoop info $ grad  
+              
+ where sM    = transpose2S $ unboxed2Mtx $ siU    
+       yMT   = unboxed2Mtx $ yiU
 
+-- |
+firstLoop :: StoreInfo -> Point -> (Point,Point)
+firstLoop info q0 = S.foldrWithIndex go (acc0, q0) info 
+ where go i (si,yi) (acc,qi) = let ai     = calcAlpha si yi qi
+                                   newQ   = U.zipWith (-) qi $ U.map (*ai) yi
+                                   newAcc = U.cons ai acc 
+                               in (newAcc,newQ)
+       calcAlpha si yi qi = (rho si yi) * (dot si qi)
+       rho si yi          = recip $ dot si yi   -- ( yT s) ^-1
+       acc0               = U.empty
+{-# INLINE firstLoop #-}
+
+-- | 
+secondLoop ::  StoreInfo -> Matrix -> (Point,Point) -> Point
+secondLoop info guessH (as,q) =  S.foldrWithIndex go r0 $ S.reverse info       
+      
+ where go i (si,yi) ri = let b    = calcBeta si yi ri
+                             ai   = as U.! i
+                         in U.zipWith (+) ri $ U.map (*(ai - b)) si 
+       dim = U.length r0                       
+       r0 =  R.toUnboxed $ mmultS guessH (unboxed2Mtx q) 
+       rho si yi          = recip $ dot si yi   -- ( yT s) ^-1
+       calcBeta si yi ri = (rho si yi) * (dot yi ri)
+{-# INLINE secondLoop #-}       
 
 -- If the number of step is bigger than m drop last tuple and append new info
 updateInfo :: StoreInfo -> (Point,Point) -> Iterations -> Step -> StoreInfo

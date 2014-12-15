@@ -1,16 +1,20 @@
 
-module Optimization where
+module Numeric.Optimizations.Unconstrained.Optimization
+       (
+       minimization
+       ) where
 
 import Data.Vector.Unboxed as U
 import Data.Array.Repa as R
 
 
 -- Internal Modules
-import BFGS (bfgs)
+import Numeric.Optimizations.Unconstrained.BFGS (bfgs)
+import Numeric.Optimizations.Unconstrained.LBFGS (lBFGS)
 
-import Tools (identity)
+import Numeric.Optimizations.Tools (identity)
 
-import TypesOptimization (
+import Numeric.Optimizations.TypesOptimization (
                           Function
                          ,FunGrad
                          ,Gradient
@@ -27,7 +31,7 @@ type MaxDisp  = Maybe Double
 
 -- | Algorithm Used to minmize the target function
 data Algorithm =  BFGS    
-                | L_BFGS  
+                | LBFGS  
                 | CG      
                 | Steepest MaxDisp
 
@@ -36,8 +40,11 @@ minimization :: Monad m => Function -> FunGrad -> Point -> Algorithm -> m (Eithe
 minimization fun gradF xs algorithm =
   let hess0 = identity $ U.length xs
   in case algorithm of
-       BFGS      -> bfgs fun gradF xs hess0 1e-8 10
+       BFGS      ->  bfgs fun gradF xs hess0   1e-8 20
+       LBFGS     ->  lBFGS fun gradF xs hess0 4 1e-8 20
        otherwise -> return $ Left "Sorry that's methods is still pending for implementation"
+
+
 
 
 

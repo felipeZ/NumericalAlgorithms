@@ -1,5 +1,5 @@
 
-module TypesOptimization where
+module Numeric.Optimizations.TypesOptimization where
 
 import qualified Data.Vector.Unboxed as U
 import Data.Array.Repa as R
@@ -24,6 +24,8 @@ type MaxSteps  = Int
 type Iterations = Int
 
 type Step       = Int
+
+type VecUnbox   = U.Vector Double
 
 -- | Data Types 
 

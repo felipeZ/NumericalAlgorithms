@@ -1,14 +1,18 @@
 {-# LANGUAGE BangPatterns #-}
 
-module WolfeCondition where
+module Numeric.Optimizations.Unconstrained.WolfeCondition
+        (
+        wolfeLineSearch
+        ) where
 
+import Control.Exception (assert)
 import Data.Maybe (fromMaybe)
 import qualified Data.Vector.Unboxed as U
 
 import Prelude as P
 
--- Internal Modules
-import TypesOptimization (
+-- =======> Internal Modules <=============
+import  Numeric.Optimizations.TypesOptimization (
                           Function
                          ,FunGrad
                          ,Gradient
@@ -18,12 +22,13 @@ import TypesOptimization (
                          ,Tolerance
                          ,WolfeParameters(..)
                           )
-import Tools (
-             dot
-            ,normVec
-             )
+  
+import  Numeric.Optimizations.Tools (
+                          dot
+                         ,normVec
+                          )
 
--- Types
+--  ===========> Types <======================
 type AlphaMax  = Double
 
 
