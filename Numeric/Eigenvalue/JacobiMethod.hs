@@ -1,48 +1,41 @@
 {-# LANGUAGE BangPatterns #-}
 
-module Numeric.Optimizations.LinearAlgebra.Jacobi (
+module Numeric.Eigenvalue.JacobiMethod (
                jacobiP,
               ) where
 
+import Control.Arrow (second)
 import Control.Applicative
 import Control.Monad
 import qualified Data.List as DL
 import Data.Array.Repa         as R
 import Data.Array.Repa.Unsafe  as R
-import qualified Data.Vector.Unboxed as VU
+import qualified Data.Vector.Unboxed as U
 
 
--- ====================> Internal Modules <================
-
-import Numeric.Optimizations.TypesOptimization
-
+-- ==================> Internal Modules <===============
+import Numeric.NumericTypes (Matrix, Step, Threshold, VecUnbox)
+import Numeric.Utilities.Tools(diagonal, sortEigenData)
 
 -- ============================> Types <=====================
 
 data Parameters = Parameters !Double !Double !Double deriving Show
 
-
 -- ============================> <======================
    
 jacobiP :: Monad m => Matrix -> m (VecUnbox,Matrix)
-jacobiP !arr = sortEigenV =<< loopJacobi arr ide 0 (1.0e-9)                     
-  where ide = identity $ extent arr
-
--- | Sort EigenValues and EigenVectors 
-sortEigenV :: Monad m => (VecUnbox,Matrix) -> m (VecUnbox,Matrix)
-sortEigenV (vals,mtx) = do 
-  let (vs,indexes)       =  unzip .  DL.sort $ zip (VU.toList vals) [0..] 
-      sortVals           = VU.fromList vs
-      fun f sh@(Z:.i:.j) = f $ ix2 i (indexes !! j)   
-  sortMtx  <- computeUnboxedP $ unsafeTraverse mtx id fun
-  return (sortVals,sortMtx)
-  
+jacobiP !arr = liftM (second (R.fromUnboxed sh) . sortEigenData .
+                             second toUnboxed) $
+                 loopJacobi arr ide 0 1.0e-9
+  where sh = extent arr
+        ide = identity sh
 
 -- | Loop to carry out the corresponding rotation of the Jacobi Method
-loopJacobi :: Monad m => Matrix -> Matrix -> Step -> Tolerance -> m (VecUnbox,Matrix)
-loopJacobi !arr !prr step tolerance = if step > 5*dim^2 
-                                          then error "Jacobi method did not converge "
-                                          else if (arr ! mx) > tolerance then action else  liftM2 (,) (diagonal arr) (return prr)
+loopJacobi :: Monad m => Matrix -> Matrix -> Step -> Threshold -> m (VecUnbox,Matrix)
+loopJacobi !arr !prr step tolerance
+             | step > 5*dim^2         =  error "Jacobi method did not converge "
+             | (arr ! mx) > tolerance = action
+             | otherwise              = liftM2 (,) (diagonal arr) (return prr)
   where (Z:.dim:. _) = extent arr
         mx@(Z:.k:.l) = maxElemIndex arr
         aDiff        = (arr ! (ix2 l l)) - (arr ! (ix2 k k))
@@ -96,32 +89,16 @@ calcParameters !maxElem !aDiff = Parameters s t tau
         
 -- Return the index of the largest off-diagonal element in the array
 maxElemIndex  :: Matrix -> DIM2
-maxElemIndex !arr  = R.fromIndex sh $ VU.foldr fun 1 inds
+maxElemIndex !arr  = R.fromIndex sh $ U.foldr fun 1 inds
 
-  where inds = (VU.enumFromN 0 (dim^2) :: VU.Vector Int)
+  where inds = (U.enumFromN 0 (dim^2) :: U.Vector Int)
         sh@(Z:. dim :. _dim) = extent arr
         fun n acc= let sh2@(Z:. i:.j) = R.fromIndex sh n
                        sh3 = R.fromIndex sh acc
-                   in if i < j then if (abs (arr ! sh2) > abs (arr ! sh3)) then n else acc
-                               else acc                
+                   in if (i < j) && (abs (arr ! sh2) > abs (arr ! sh3)) then n else acc
 
                 
-diagonal :: Monad m => Matrix -> m VecUnbox        
-diagonal mtx = liftM toUnboxed  $ computeUnboxedP $ unsafeBackpermute (ix1 dim) (\(Z:.i) -> ix2 i i) mtx
-
-  where (Z:. dim :._) = extent mtx
-        
-        
 identity :: DIM2 -> Matrix
 identity sh = computeUnboxedS $ fromFunction sh $
   \(Z:. x:. y) -> if x==y then 1 else 0
-
-
--- | normalize the eigenvectors
-normalizeEigenVectors :: Monad m => Matrix -> m Matrix
-normalizeEigenVectors mtx = computeUnboxedP $ traverse mtx id fun 
-
-  where norms = computeUnboxedS . R.map sqrt . foldS (\x acc -> acc+x^2) 0 . transpose $ mtx
-        fun f sh@(Z:. x :._) = f sh / (norms ! ix1 x)
-{-# Inline normalizeEigenVectors #-}              
-                
+       
