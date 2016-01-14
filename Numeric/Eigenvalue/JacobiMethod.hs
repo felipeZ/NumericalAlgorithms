@@ -1,7 +1,7 @@
 {-# LANGUAGE BangPatterns #-}
 
 module Numeric.Eigenvalue.JacobiMethod (
-               jacobiP,
+               jacobiP
               ) where
 
 import Control.Arrow (second)
@@ -38,7 +38,7 @@ loopJacobi !arr !prr step tolerance
              | otherwise              = liftM2 (,) (diagonal arr) (return prr)
   where (Z:.dim:. _) = extent arr
         mx@(Z:.k:.l) = maxElemIndex arr
-        aDiff        = (arr ! (ix2 l l)) - (arr ! (ix2 k k))
+        aDiff        = (arr ! ix2 l l) - (arr ! ix2 k k)
         parameters   = calcParameters (arr ! mx) aDiff
         action       = do            
            newA <- rotateA arr mx parameters
@@ -79,26 +79,21 @@ rotateP prr kl@(Z:. k :. l) (Parameters !s !t !tau) = computeUnboxedP $ unsafeTr
 
 calcParameters ::  Double -> Double -> Parameters                 
 calcParameters !maxElem !aDiff = Parameters s t tau
-  where t = if (abs maxElem < abs aDiff *1.0e-36) then maxElem/aDiff
+  where t = if abs maxElem < abs aDiff *1.0e-36 then maxElem/aDiff
             else let phi = aDiff/(2.0 *maxElem )
-                     var = recip (abs phi + (sqrt $ 1 + phi^2))
+                     var = recip (abs phi + sqrt (1 + phi^2))
                  in if phi < 0 then negate var else var
         c = recip $ sqrt(t^2 + 1)
         s = t*c
         tau = s/(1 + c)
         
--- Return the index of the largest off-diagonal element in the array
+-- | Return the index of the largest off-diagonal element in the array
 maxElemIndex  :: Matrix -> DIM2
 maxElemIndex !arr  = R.fromIndex sh $ U.foldr fun 1 inds
 
-  where inds = (U.enumFromN 0 (dim^2) :: U.Vector Int)
+  where inds = U.enumFromN 0 (dim^2) :: U.Vector Int
         sh@(Z:. dim :. _dim) = extent arr
         fun n acc= let sh2@(Z:. i:.j) = R.fromIndex sh n
                        sh3 = R.fromIndex sh acc
                    in if (i < j) && (abs (arr ! sh2) > abs (arr ! sh3)) then n else acc
-
-                
-identity :: DIM2 -> Matrix
-identity sh = computeUnboxedS $ fromFunction sh $
-  \(Z:. x:. y) -> if x==y then 1 else 0
        

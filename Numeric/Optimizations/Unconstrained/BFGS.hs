@@ -15,16 +15,16 @@ import Data.Array.Repa.Algorithms.Matrix (
 import Text.Printf (printf)
 
 -- Internal Modules
-import  Numeric.Optimizations.TypesOptimization (
+import  Numeric.NumericTypes (
                           Function
                          ,FunGrad
                          ,Gradient
                          ,Matrix
                          ,MaxSteps
-                         ,Point
-                         ,Tolerance
+                         ,VecUnbox
+                         ,Threshold
                           )
-import  Numeric.Optimizations.Tools (
+import  Numeric.Utilities.Tools (
              dot
             ,identity
             ,normVec
@@ -38,33 +38,33 @@ import Numeric.Optimizations.Unconstrained.WolfeCondition (wolfeLineSearch)
 
 bfgs :: Monad m => Function  -- | Objective funxtion f(X) where X = {x1,x2...xn} 
                 -> FunGrad   -- | Objective function Gradient Df(X) = {df/dx1,..df/dxn} 
-                -> Point     -- | Initial point 
+                -> VecUnbox  -- | Initial point 
                 -> Matrix    -- | Initial Hessian Matrix
                 -> Tolerance -- | Numerical Tolerance 
                 -> MaxSteps  -- | Maximum allowed steps
-                -> m (Either String Point)
+                -> m (Either String VecUnbox)
 bfgs f gradF point guessH delta maxSteps = recBFGS point guessH 1
   where recBFGS !xs !hs step =
-          if (step > maxSteps)
+          if step > maxSteps
              then return . Left $ printf "Convergence criterion not met after %d steps\n" step
              else do       
               let norma = normVec $ gradF xs        
-              if (norma < delta) then return $ Right xs
-                                 else do
-                                    let d        = mmultS hs . unboxed2Mtx $ U.map negate $ gradF xs
-                                        xsM      = unboxed2Mtx xs
-                                        alpha    = wolfeLineSearch f gradF (R.toUnboxed d) xs 2 Nothing
-                                        alphaDir = scalarMatrix alpha d 
-                                        newXs    = R.toUnboxed .computeUnboxedS $ xsM +^ alphaDir
-                                        g        = U.zipWith (-) (gradF newXs) (gradF xs)
-                                        s        = U.zipWith (-) newXs xs
+              if norma < delta then return $ Right xs
+                               else do
+                                  let d        = mmultS hs . unboxed2Mtx $ U.map negate $ gradF xs
+                                      xsM      = unboxed2Mtx xs
+                                      alpha    = wolfeLineSearch f gradF (R.toUnboxed d) xs 2 Nothing
+                                      alphaDir = scalarMatrix alpha d 
+                                      newXs    = R.toUnboxed .computeUnboxedS $ xsM +^ alphaDir
+                                      g        = U.zipWith (-) (gradF newXs) (gradF xs)
+                                      s        = U.zipWith (-) newXs xs
                                     newHess <- updateHessian hs g s
                                     recBFGS newXs newHess (succ step) 
 
 updateHessian :: Monad m =>
                     Matrix    -- | current Hessian Matrix
-                 -> Point     -- | Delta Gradients on Point GXj - GXj_1
-                 -> Point     -- | Delta Points  Xj -Xj_1
+                 -> VecUnbox  -- | Delta Gradients on Point GXj - GXj_1
+                 -> VecUnbox  -- | Delta Points  Xj -Xj_1
                  -> m Matrix
 updateHessian !mtx !gU !sU = computeUnboxedP $
                                hessk +^ rhoSST 

@@ -12,9 +12,9 @@ import Data.Array.Repa as R
 import Numeric.Optimizations.Unconstrained.BFGS (bfgs)
 import Numeric.Optimizations.Unconstrained.LBFGS (lBFGS)
 
-import Numeric.Optimizations.Tools (identity)
+import Numeric.Utilities.Tools (identity)
 
-import Numeric.Optimizations.TypesOptimization (
+import Numeric.NumericTypes (
                           Function
                          ,FunGrad
                          ,Gradient

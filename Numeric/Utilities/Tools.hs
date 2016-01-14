@@ -91,7 +91,7 @@ identity ::  Int -> Matrix
 identity dim = computeUnboxedS $ fromFunction (ix2 dim dim) $
   \(Z:. x:. y) -> if x==y then 1 else 0
 
-normVec :: Point -> Double
+normVec :: VecUnbox -> Double
 normVec xs = sqrt $ dot xs xs 
 
 scalarMatrix :: Double -> Matrix -> Matrix
@@ -106,3 +106,5 @@ diagonal vs = computeUnboxedS $ traverse (identity dim) id
               $ \fun sh@(z :. i :. j) -> if i == j then vs U.! i
                                                    else fun sh
  where dim = U.length vs
+
+

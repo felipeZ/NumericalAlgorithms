@@ -12,19 +12,19 @@ import Prelude as P
 import Text.Printf (printf)
 
 -- =======> Internal Modules <=============
-import  Numeric.Optimizations.TypesOptimization (
+import  Numeric.NumericTypes (
                           Function
                          ,FunGrad
                          ,Gradient
                          ,Matrix
                          ,MaxSteps
-                         ,Point
                          ,Step
-                         ,Tolerance
+                         ,Threshold
+                         ,VecUnbox
                          ,WolfeParameters(..)
                           )
   
-import  Numeric.Optimizations.Tools (
+import  Numeric.Utilities.Tools (
                           dot
                          ,normVec
                           )
@@ -48,8 +48,8 @@ data WolfeData = WolfeData {
 -- | Notice that this algorithm is inappropiate for non-smooth optimization. 
 wolfeLineSearch :: Function
                -> FunGrad 
-               -> Point    -- | Minimization direction 
-               -> Point    -- | current point
+               -> VecUnbox    -- | Minimization direction 
+               -> VecUnbox    -- | current point
                -> AlphaMax -- | Maximum Step length 
                -> Maybe WolfeParameters -- | These Parameters must fulfill 0 < C1 < C2 < 1
                -> Double 
@@ -63,15 +63,17 @@ wolfeLineSearch f gradF d xs aMax maybeWP = recWolfe wdata 0 a1 aMax 1
          dervPhi'  = dot d . funGrad
          
 recWolfe ::  WolfeData -> Double -> Double -> Double -> Int -> Double
-recWolfe wd@(WolfeData phi phi' phi0 phi0' (WP c1 c2) ) !ak_1 !ak aMax step =
- if bool1 then action1 else if bool2 then action2 else if bool3 then action3 else action4
-  
+recWolfe wd@(WolfeData phi phi' phi0 phi0' (WP c1 c2) ) !ak_1 !ak aMax step
+  | bool1 = action1
+  | bool2 = action2
+  | bool3 = action3
+  | otherwise = action4
   where phi_k    = phi ak 
         c1akPhi' = c1 * ak * phi0'
         bool1    = (phi_k > phi0 + c1akPhi') ||              -- ak violates the sufficient decrease condition
                      (step > 1 && (phi ak >= phi ak_1 ))     -- or phi(ak) >= phi(ak_1)
-        bool2    = (abs $ phi' ak) <= (negate $ c2 * phi0')  -- acceptable step length       
-        bool3    = (phi' ak) >= 0                            -- the gradient points to the minimization direction
+        bool2    = abs ( phi' ak) <= negate ( c2 * phi0')    -- acceptable step length       
+        bool3    = phi' ak >= 0                              -- the gradient points to the minimization direction
         action1  = zoom wd ak_1 ak 
         action2  = ak
         action3  = zoom wd ak ak_1 
@@ -80,15 +82,17 @@ recWolfe wd@(WolfeData phi phi' phi0 phi0' (WP c1 c2) ) !ak_1 !ak aMax step =
 
 -- | find the acceptable step length in the given interval
 zoom :: WolfeData -> Double -> Double -> Double 
-zoom wd@(WolfeData phi phi' phi0 phi0' (WP c1 c2) ) alo ahi = 
-  if bool1 then action1 else if bool2 then action2 else if bool3 then action3 else action4
-
+zoom wd@(WolfeData phi phi' phi0 phi0' (WP c1 c2) ) alo ahi
+  | bool1 = action1
+  | bool2 = action2
+  | bool3 = action3
+  | otherwise = action4
   where aj       = interpolate wd alo ahi
-        phi_j    = phi $ aj  
+        phi_j    = phi aj  
         c1ajPhi' = c1 * aj * phi0'
         bool1    = (phi_j > phi0 + c1ajPhi') || (phi aj >= phi alo)
-        bool2    = (abs $ phi' aj) <= (negate $ c2 * phi0')
-        bool3    = ((phi' aj) *(ahi-alo)) >= 0 
+        bool2    = abs (phi' aj) <= negate ( c2 * phi0')
+        bool3    = (phi' aj *(ahi-alo)) >= 0 
         action1  = zoom wd alo aj
         action2  = aj
         action3  = zoom wd aj alo
@@ -102,18 +106,18 @@ interpolate (WolfeData phi phi' phi0 phi0' (WP c1 c2) ) alo ahi  =
   if alo == 0 then ahi/2
               else (-b + sqr) / (3*a)
  where sqr = sqrt $ b^2 - 3*a * phi0'
-       vs  = [(phi ahi) - phi0 - ahi*phi0',(phi alo) - phi0 - alo*phi0']
+       vs  = [phi ahi - phi0 - ahi*phi0', phi alo - phi0 - alo*phi0']
        mtx = [[alo^2, -ahi^2],[-alo^3,ahi^3]]
        fac = recip $ (alo^2)*(ahi^2)*(ahi-alo)
-       [a,b] = P.map ((*fac) . P.sum . P.zipWith (*) vs) mtx
+       [a,b] = fmap ((*fac) . P.sum . P.zipWith (*) vs) mtx
        
        
 -- =========================> Weak Wolfe Condition <====================
 -- |
 weakWolfeLineSearch :: Function
                -> FunGrad 
-               -> Point    -- | Minimization direction 
-               -> Point    -- | current point
+               -> VecUnbox    -- | Minimization direction 
+               -> VecUnbox    -- | current point
                -> AlphaMax -- | Maximum Step length 
                -> Maybe WolfeParameters -- | These Parameters must fulfill 0 < C1 < C2 < 1
                -> Double

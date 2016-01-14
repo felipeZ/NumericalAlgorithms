@@ -1,8 +1,7 @@
 {-# LANGUAGE BangPatterns #-}
 
-module Science.QuantumChemistry.NumericalTools.JacobiMethodST (
+module Numeric.Eigenvalue.JacobiMethodST (
                jacobiST
-              ,maxElemIndex
               ) where
 
 import Control.Arrow (second)
@@ -17,15 +16,10 @@ import Data.Vector.Unboxed as U
 
 
 -- ----------------------> Internal Modules <---------------
-
-import Science.QuantumChemistry.GlobalTypes (Matrix,VecUnbox)
-import Science.QuantumChemistry.NumericalTools.LinearAlgebra (diagonal,identity)
-import Science.QuantumChemistry.NumericalTools.VectorTools (diagonalVec,sortEigenData)
+import Numeric.NumericTypes (Matrix, Step, Threshold, VecUnbox)
+import Numeric.Utilities.Tools(diagonal, diagonalVec, sortEigenData)
 
 -- ============================> Types <=====================
-
-type Step      = Int
-type Tolerance = Double
 
 data Parameters = Parameters !Double !Double !Double deriving Show
 
@@ -45,7 +39,7 @@ loopJacobi :: PrimMonad m => MVector (PrimState m)  Double ->
                              MVector (PrimState m)  Double ->
                              Int       -> 
                              Step      -> 
-                             Tolerance ->
+                             Threshold ->
                              m (VecUnbox,VecUnbox)
 loopJacobi !arr !prr dim step tolerance = 
       if step > 5*dim*dim
@@ -103,8 +97,8 @@ rotateP :: PrimMonad m => MVector (PrimState m) Double ->
                           m (MVector (PrimState m) Double)
 rotateP prr kl@(Z:. k :. l) (Parameters !s !t !tau) dim funIdx =  do
     U.forM_ (generate dim id ) $ \i ->  
-                do  val <- uread $ (ix2 i k)
-                    pil <- uread $ (ix2 i l)
+                do  val <- uread (ix2 i k)
+                    pil <- uread (ix2 i l)
                     uwrite (ix2 i k) $ val - s*(pil + tau*val)
                     uwrite (ix2 i l) $ pil + s*(val - tau*pil)
     return prr 
@@ -117,7 +111,7 @@ calcParameters ::  Double -> Double -> Parameters
 calcParameters !maxElem !aDiff = Parameters s t tau
   where t = if (abs maxElem < abs aDiff *1.0e-36) then maxElem/aDiff
             else let phi = aDiff/(2.0 *maxElem )
-                     var = recip (abs phi + (sqrt $ 1 + phi^2))
+                     var = recip (abs phi + sqrt ( 1 + phi^2))
                  in if phi < 0 then negate var else var
         c = recip $ sqrt(t^2 + 1)
         s = t*c

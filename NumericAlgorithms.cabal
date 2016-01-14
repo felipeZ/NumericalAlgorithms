@@ -24,6 +24,7 @@ Library
        ,Cabal           
        ,containers
        -- ,monad-memo
+       ,primitive
        ,repa            
        ,repa-algorithms 
        ,vector          

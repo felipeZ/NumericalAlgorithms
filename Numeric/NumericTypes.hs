@@ -8,11 +8,9 @@ import qualified Data.Vector.Unboxed as U
 
 -- ==================> Internal Modules <===============
 
--- | Repa matrix representation
-type Matrix = Array U DIM2 Double
+type FunGrad   = VecUnbox -> VecUnbox  
 
-type FunGrad   = Point -> Point  
-type Function  = Point -> Double
+type Function  = VecUnbox -> VecUnbox
 
 type Gradient  = Array U DIM2 Double
 

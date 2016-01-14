@@ -23,19 +23,20 @@ import Data.Array.Repa.Algorithms.Matrix (
 import Text.Printf (printf)
 
 -- Internal Modules
-import  Numeric.Optimizations.TypesOptimization (
+import  Numeric.NumericTypes (
                           Function
                          ,FunGrad
                          ,Gradient
                          ,Iterations
                          ,Matrix
                          ,MaxSteps
-                         ,Point
                          ,Step
                          ,Tolerance
+                         ,Threshold
+                         ,VecUnbox
                           )
   
-import  Numeric.Optimizations.Tools (
+import  Numeric.Utilities.Tools (
              diagonal
             ,dot
             ,identity
@@ -48,19 +49,19 @@ import  Numeric.Optimizations.Unconstrained.WolfeCondition (wolfeLineSearch)
 
 -- ==============> Data Types <==================
 
-type StoreInfo = S.Seq (Point,Point) -- | Previous step and Gradients store to calculate the direction
+type StoreInfo = S.Seq (VecUnbox,VecUnbox) -- | Previous step and Gradients store to calculate the direction
 
 
 -- ========================> <===============
 
 lBFGS :: Monad m => Function   -- | Objective funxtion f(X) where X = {x1,x2...xn} 
                  -> FunGrad    -- | Objective function Gradient Df(X) = {df/dx1,..df/dxn} 
-                 -> Point      -- | Initial point 
+                 -> VecUnbox      -- | Initial point 
                  -> Matrix     -- | Initial Hessian Matrix
                  -> Iterations -- | Number of previous iteraction to store 
                  -> Tolerance  -- | Numerical Tolerance 
                  -> MaxSteps   -- | Maximum allowed steps
-                 -> m (Either String Point)
+                 -> m (Either String VecUnbox)
 lBFGS f gradF point guessHo mIterations delta maxSteps = recLBFGS point (Just guessHo) S.empty 1
   where recLBFGS !xs maybeHs info step =
           if (step > maxSteps)
@@ -94,14 +95,14 @@ chooseH0 Nothing (viewl -> (s,y) :< _ ) = scalarMatrix gamma $ identity dim --  
 -- | then a backward traverse while accumulating.
 calculateDir :: StoreInfo -- | previous stored m steps
              -> Matrix    -- | guess Hessian matrix
-             -> Point     -- | gradient on current point
-             -> Point     -- | minimization direction                   
+             -> VecUnbox     -- | gradient on current point
+             -> VecUnbox     -- | minimization direction                   
 calculateDir (viewl -> EmptyL) mtx grad  =  R.toUnboxed . mmultS mtx . unboxed2Mtx $ U.map negate grad
 calculateDir info mtx grad  = U.map negate $
   secondLoop info mtx . firstLoop info $ grad  
 
 -- |
-firstLoop :: StoreInfo -> Point -> (Point,Point)
+firstLoop :: StoreInfo -> VecUnbox -> (VecUnbox,VecUnbox)
 firstLoop info q0 = first U.reverse $ S.foldrWithIndex go (acc0, q0) info 
  where go i (si,yi) (acc,qi) = let ai     = calcAlpha si yi qi
                                    newQ   = U.zipWith (-) qi $ U.map (*ai) yi
@@ -113,7 +114,7 @@ firstLoop info q0 = first U.reverse $ S.foldrWithIndex go (acc0, q0) info
 {-# INLINE firstLoop #-}
 
 -- | 
-secondLoop ::  StoreInfo -> Matrix -> (Point,Point) -> Point
+secondLoop ::  StoreInfo -> Matrix -> (VecUnbox,VecUnbox) -> VecUnbox
 secondLoop info guessH (as,q) =  S.foldrWithIndex go r0 $ S.reverse info       
       
  where go i (si,yi) ri = let b    = calcBeta si yi ri
@@ -126,7 +127,7 @@ secondLoop info guessH (as,q) =  S.foldrWithIndex go r0 $ S.reverse info
 {-# INLINE secondLoop #-}       
 
 -- If the number of step is bigger than m drop last tuple and append new info
-updateInfo :: StoreInfo -> (Point,Point) -> Iterations -> Step -> StoreInfo
+updateInfo :: StoreInfo -> (VecUnbox,VecUnbox) -> Iterations -> Step -> StoreInfo
 updateInfo st new mIterations step | step <= mIterations = new <| st
                                    | otherwise = case viewr st of
                                                       (xs :> _) -> new <| xs

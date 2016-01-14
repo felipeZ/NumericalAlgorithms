@@ -1,6 +1,6 @@
 {-# Language BangPatterns,FlexibleContexts,TypeFamilies #-}
 
-module Science.QuantumChemistry.NumericalTools.GaussElimination {-(
+module Numeric.Utilities.GaussElimination {-(
 --                          gaussElem
                         )-}  where
 
@@ -9,9 +9,6 @@ import Data.Array.Repa         as R
 import Data.Array.Repa.Unsafe  as R
 import qualified Data.Vector as V
 import qualified Data.Vector.Unboxed as U
-
---  --------------> Internal Modules <---------
-import qualified Science.QuantumChemistry.NumericalTools.LinearAlgebra as LA
 
     
 -- ================> Types <=====================

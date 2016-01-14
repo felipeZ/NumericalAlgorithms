@@ -1,6 +1,6 @@
 
 module Numeric.Eigenvalue where
 
-import Science.QuantumChemistry.NumericalTools.JacobiMethod   (jacobiP)
-import Science.QuantumChemistry.NumericalTools.JacobiMethodST (jacobiST)
+import Numeric.Eigenvalue.JacobiMethod   (jacobiP)
+import Numeric.Eigenvalue.JacobiMethodST (jacobiST)
 
