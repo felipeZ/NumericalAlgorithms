@@ -5,7 +5,7 @@ import Control.Monad (liftM)
 import Control.Monad.Primitive (PrimMonad, PrimState)
 import Control.Monad.ST (runST)
 import Data.Array.Repa.Index
-import Data.Array.Repa (toIndex)
+import Data.Array.Repa as R
 import Data.Array.Repa.Algorithms.Matrix (
                         col
                        ,mmultP
@@ -20,7 +20,7 @@ import Data.Vector.Generic.Mutable (new,unsafeWrite)
 
 
 -- ============> Internal Modules <===================
-import Numeric.NumericTypes Matrix, (VecUnbox)
+import Numeric.NumericTypes (Matrix, VecUnbox)
 
 -- ========================> <=========================
 
@@ -60,7 +60,7 @@ sliceColumn ::  Unbox a =>
                   Int ->      -- square Matrix dimension
                   Vector a -> -- Flatten matrix
                   Vector a 
-sliceColumn k dim xs = generate dim $ \i -> xs ! (k + dim*i)
+sliceColumn k dim xs = generate dim $ \i -> xs U.! (k + dim*i)
   
 
 writeColumn ::  (Unbox a, PrimMonad m) =>
@@ -95,14 +95,14 @@ normVec :: VecUnbox -> Double
 normVec xs = sqrt $ dot xs xs 
 
 scalarMatrix :: Double -> Matrix -> Matrix
-scalarMatrix s = computeUnboxedS . R.map (*s)
+scalarMatrix s = R.computeUnboxedS . R.map (*s)
 
 unboxed2Mtx :: U.Vector Double -> Matrix
 unboxed2Mtx vs = R.fromUnboxed (ix2 dim 1) vs
   where dim = U.length vs
 
 diagonal :: U.Vector Double -> Array U DIM2 Double
-diagonal vs = computeUnboxedS $ traverse (identity dim) id
+diagonal vs = computeUnboxedS $ R.traverse (identity dim) id
               $ \fun sh@(z :. i :. j) -> if i == j then vs U.! i
                                                    else fun sh
  where dim = U.length vs

@@ -31,7 +31,6 @@ import  Numeric.NumericTypes (
                          ,Matrix
                          ,MaxSteps
                          ,Step
-                         ,Tolerance
                          ,Threshold
                          ,VecUnbox
                           )
@@ -59,7 +58,7 @@ lBFGS :: Monad m => Function   -- | Objective funxtion f(X) where X = {x1,x2...x
                  -> VecUnbox      -- | Initial point 
                  -> Matrix     -- | Initial Hessian Matrix
                  -> Iterations -- | Number of previous iteraction to store 
-                 -> Tolerance  -- | Numerical Tolerance 
+                 -> Threshold  -- | Numerical Tolerance 
                  -> MaxSteps   -- | Maximum allowed steps
                  -> m (Either String VecUnbox)
 lBFGS f gradF point guessHo mIterations delta maxSteps = recLBFGS point (Just guessHo) S.empty 1

@@ -52,15 +52,16 @@ wolfeLineSearch :: Function
                -> VecUnbox    -- | current point
                -> AlphaMax -- | Maximum Step length 
                -> Maybe WolfeParameters -- | These Parameters must fulfill 0 < C1 < C2 < 1
-               -> Double 
-wolfeLineSearch f gradF d xs aMax maybeWP = recWolfe wdata 0 a1 aMax 1                 
-   where wdata     = WolfeData fun dervPhi' (f xs) (dot d $ gradF xs) wp  
-         a1        = 1
-         wp        = fromMaybe (WP 1e-4 0.9) maybeWP
-         fun       = f . evalArg
-         funGrad   = gradF . evalArg 
-         evalArg a = U.zipWith (+) xs $ U.map  (*a) d
-         dervPhi'  = dot d . funGrad
+               -> Double
+wolfeLineSearch = undefined                
+-- wolfeLineSearch f gradF d xs aMax maybeWP = recWolfe wdata 0 a1 aMax 1
+  -- where wdata     = WolfeData fun dervPhi' (f xs) (dot d $ gradF xs) wp  
+  --        a1        = 1
+  --        wp        = fromMaybe (WP 1e-4 0.9) maybeWP
+  --        fun       = f . evalArg
+  --        funGrad   = gradF . evalArg 
+  --        evalArg a = U.zipWith (+) xs $ U.map  (*a) d
+  --        dervPhi'  = dot d . funGrad
          
 recWolfe ::  WolfeData -> Double -> Double -> Double -> Int -> Double
 recWolfe wd@(WolfeData phi phi' phi0 phi0' (WP c1 c2) ) !ak_1 !ak aMax step

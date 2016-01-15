@@ -17,7 +17,11 @@ import Data.Vector.Unboxed as U
 
 -- ----------------------> Internal Modules <---------------
 import Numeric.NumericTypes (Matrix, Step, Threshold, VecUnbox)
-import Numeric.Utilities.Tools(diagonal, diagonalVec, sortEigenData)
+import Numeric.Utilities.Tools(
+  diagonal,
+  diagonalVec,
+  identity,
+  sortEigenData)
 
 -- ============================> Types <=====================
 

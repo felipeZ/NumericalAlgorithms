@@ -15,7 +15,7 @@ import qualified Data.Vector.Unboxed as U
 
 -- ==================> Internal Modules <===============
 import Numeric.NumericTypes (Matrix, Step, Threshold, VecUnbox)
-import Numeric.Utilities.Tools(diagonal, sortEigenData)
+import Numeric.Utilities.Tools(identity, sortEigenData)
 
 -- ============================> Types <=====================
 
@@ -27,15 +27,15 @@ jacobiP :: Monad m => Matrix -> m (VecUnbox,Matrix)
 jacobiP !arr = liftM (second (R.fromUnboxed sh) . sortEigenData .
                              second toUnboxed) $
                  loopJacobi arr ide 0 1.0e-9
-  where sh = extent arr
-        ide = identity sh
+  where sh@(Z :. dim :. _) = extent arr
+        ide = identity dim
 
 -- | Loop to carry out the corresponding rotation of the Jacobi Method
 loopJacobi :: Monad m => Matrix -> Matrix -> Step -> Threshold -> m (VecUnbox,Matrix)
 loopJacobi !arr !prr step tolerance
              | step > 5*dim^2         =  error "Jacobi method did not converge "
              | (arr ! mx) > tolerance = action
-             | otherwise              = liftM2 (,) (diagonal arr) (return prr)
+             | otherwise              = liftM2 (,) (toDiagonal arr) (return prr)
   where (Z:.dim:. _) = extent arr
         mx@(Z:.k:.l) = maxElemIndex arr
         aDiff        = (arr ! ix2 l l) - (arr ! ix2 k k)
@@ -97,3 +97,6 @@ maxElemIndex !arr  = R.fromIndex sh $ U.foldr fun 1 inds
                        sh3 = R.fromIndex sh acc
                    in if (i < j) && (abs (arr ! sh2) > abs (arr ! sh3)) then n else acc
        
+toDiagonal :: Monad m => Matrix -> m VecUnbox        
+toDiagonal mtx = liftM toUnboxed  $ computeUnboxedP $ unsafeBackpermute (ix1 dim) (\(Z:.i) -> ix2 i i) mtx
+  where (Z:. dim :._) = extent mtx

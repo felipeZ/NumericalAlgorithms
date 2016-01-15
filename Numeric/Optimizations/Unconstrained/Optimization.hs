@@ -20,8 +20,8 @@ import Numeric.NumericTypes (
                          ,Gradient
                          ,Matrix
                          ,MaxSteps
-                         ,Point
-                         ,Tolerance
+                         ,Threshold
+                         ,VecUnbox
                           )
 
 -- ===========> <================
@@ -36,7 +36,7 @@ data Algorithm =  BFGS
                 | Steepest MaxDisp
 
 -- |
-minimization :: Monad m => Function -> FunGrad -> Point -> Algorithm -> m (Either String Point)
+minimization :: Monad m => Function -> FunGrad -> VecUnbox -> Algorithm -> m (Either String VecUnbox)
 minimization fun gradF xs algorithm =
   let hess0 = identity $ U.length xs
   in case algorithm of

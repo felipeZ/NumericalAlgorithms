@@ -40,7 +40,7 @@ bfgs :: Monad m => Function  -- | Objective funxtion f(X) where X = {x1,x2...xn}
                 -> FunGrad   -- | Objective function Gradient Df(X) = {df/dx1,..df/dxn} 
                 -> VecUnbox  -- | Initial point 
                 -> Matrix    -- | Initial Hessian Matrix
-                -> Tolerance -- | Numerical Tolerance 
+                -> Threshold -- | Numerical Tolerance 
                 -> MaxSteps  -- | Maximum allowed steps
                 -> m (Either String VecUnbox)
 bfgs f gradF point guessH delta maxSteps = recBFGS point guessH 1
@@ -58,8 +58,8 @@ bfgs f gradF point guessH delta maxSteps = recBFGS point guessH 1
                                       newXs    = R.toUnboxed .computeUnboxedS $ xsM +^ alphaDir
                                       g        = U.zipWith (-) (gradF newXs) (gradF xs)
                                       s        = U.zipWith (-) newXs xs
-                                    newHess <- updateHessian hs g s
-                                    recBFGS newXs newHess (succ step) 
+                                  newHess <- updateHessian hs g s
+                                  recBFGS newXs newHess (succ step) 
 
 updateHessian :: Monad m =>
                     Matrix    -- | current Hessian Matrix

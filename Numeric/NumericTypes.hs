@@ -14,6 +14,8 @@ type Function  = VecUnbox -> VecUnbox
 
 type Gradient  = Array U DIM2 Double
 
+type Iterations = Int 
+
 -- | Repa matrix represnetation
 type Matrix    = Array U DIM2 Double 
 
